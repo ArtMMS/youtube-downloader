@@ -55,3 +55,18 @@ The FFmpeg binaries are **not included in this repository** because they exceed 
 For a packaged version of the application, FFmpeg may instead be bundled with the application and extracted to a temporary directory at runtime. The application can then use that temporary directory as the FFmpeg location.
 
 Users running the project from source are therefore responsible for providing a valid FFmpeg installation or placing the required FFmpeg executables in the expected location.
+
+
+
+## Building the Executable
+
+To generate the Windows `.exe` using **PyInstaller**, run the following command in the project directory:
+
+```bash
+pyinstaller --onefile --windowed --noconfirm --clean --name "YouTubeDownloader" --icon=youtube_icon.ico main.py
+```
+
+The generated executable will be available in the `dist` folder.
+
+
+
