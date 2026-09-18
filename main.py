@@ -6,15 +6,66 @@ from tkinter import ttk
 
 from pathlib import Path
 
+import json
+import sys
 import threading
 
 import yt_dlp
 
+if getattr(sys, "frozen", False):
+    project_folder = Path(sys.executable).parent
+else:
+    project_folder = Path(__file__).parent
 
-# Default download folder
-project_folder = Path(__file__).parent
-download_folder = project_folder / "downloads"
-download_folder.mkdir(exist_ok=True)
+default_download_folder = project_folder / "downloads"
+
+# File where the user's settings are stored
+settings_file = project_folder / "settings.json"
+
+
+def load_settings():
+    try:
+        with open(settings_file, "r", encoding="utf-8") as file:
+            settings = json.load(file)
+
+        if isinstance(settings, dict):
+            return settings
+
+    except (OSError, ValueError):
+        pass
+
+    return {}
+
+
+def save_settings(settings):
+    try:
+        with open(settings_file, "w", encoding="utf-8") as file:
+            json.dump(
+                settings,
+                file,
+                indent=4,
+                ensure_ascii=False
+            )
+
+    except OSError:
+        pass
+
+
+def load_download_folder():
+    saved_folder = load_settings().get("download_folder")
+
+    if saved_folder:
+        saved_path = Path(saved_folder)
+
+        # Only use the saved folder if it still exists
+        if saved_path.is_dir():
+            return saved_path
+
+    default_download_folder.mkdir(exist_ok=True)
+    return default_download_folder
+
+
+download_folder = load_download_folder()
 
 # Folder containing ffmpeg.exe and ffprobe.exe
 ffmpeg_folder = project_folder / "ffmpeg"
@@ -127,6 +178,16 @@ def download_mp3_thread(url):
             0,
             lambda: download_error(error)
         )
+
+
+def confirm_exit():
+    answer = messagebox.askyesno(
+        "Exit",
+        "Are you sure you want to close the application?"
+    )
+
+    if answer:
+        root.destroy()
 
 
 def get_video_qualities(url):
@@ -324,6 +385,10 @@ def choose_folder():
     if selected_folder:
         download_folder = Path(selected_folder)
 
+        settings = load_settings()
+        settings["download_folder"] = str(download_folder)
+        save_settings(settings)
+
         folder_label.config(
             text=f"Download Folder: {download_folder}"
         )
@@ -363,6 +428,18 @@ root = tk.Tk()
 root.title("YouTube Downloader")
 root.geometry("700x300")
 
+root.protocol(
+    "WM_DELETE_WINDOW",
+    confirm_exit
+)
+
+root.bind(
+    "<Escape>",
+    lambda event: confirm_exit()
+)
+
+# Set application icon
+root.iconbitmap("youtube_icon.ico")
 
 # Title
 title_label = tk.Label(
